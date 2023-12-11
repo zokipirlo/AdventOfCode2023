@@ -1,10 +1,12 @@
+import java.awt.Polygon
+
 data class Area(
     val pipeConnections: List<List<PipeConnection>>
 ) {
     var visitOrderIndex = 0
     var loopCompleted = false
 
-    fun visitNeighbors(posX: Int, posY: Int) {
+    private fun visitNeighbors(posX: Int, posY: Int) {
 //        println("visitNeighbors posX=$posX, posY=$posY")
         var x = posX
         var y = posY
@@ -26,6 +28,115 @@ data class Area(
         val oneDimension = pipeConnections.flatten()
         val start = oneDimension.find { it is PipeConnection.S } ?: throw Exception("Missing start")
         visitNeighbors(start.posX, start.posY)
+    }
+
+    //    private fun isLoopLineTop(yPos: Int, xPos: Int): Boolean {
+//        if (yPos == 0) {
+//            return false
+//        }
+//        return (yPos downTo 0).find { pipeConnections[it][xPos].count != null } != null
+//    }
+//
+//    private fun firstNeighborTop(yPos: Int, xPos: Int): Int? {
+//        if (yPos == 0) {
+//            return null
+//        }
+//        return (yPos downTo 0).map { pipeConnections[it][xPos].count }.first { it == null || it > 0 }
+//    }
+//
+//    private fun isLoopLineBottom(yPos: Int, xPos: Int): Boolean {
+//        val length = pipeConnections.size
+//        if (yPos >= length - 1) {
+//            return false
+//        }
+//        return (yPos until length).find { pipeConnections[it][xPos].count != null } != null
+//    }
+//
+//    private fun firstNeighborBottom(yPos: Int, xPos: Int): Int? {
+//        val length = pipeConnections.size
+//        if (yPos >= length - 1) {
+//            return null
+//        }
+//        return (yPos until length).map { pipeConnections[it][xPos].count }.first { it == null || it > 0 }
+//    }
+//
+//    private fun isLoopLineLeft(yPos: Int, xPos: Int): Boolean {
+//        if (xPos == 0) {
+//            return false
+//        }
+//        return (xPos downTo 0).find { pipeConnections[yPos][it].count != null } != null
+//    }
+//
+//    private fun firstNeighborLeft(yPos: Int, xPos: Int): Int? {
+//        if (xPos == 0) {
+//            return null
+//        }
+//        return (xPos downTo 0).map { pipeConnections[yPos][it].count }.first { it == null || it > 0 }
+//    }
+//
+//    private fun isLoopLineRight(yPos: Int, xPos: Int): Boolean {
+//        val length = pipeConnections[yPos].size
+//        if (xPos >= length - 1) {
+//            return false
+//        }
+//        return (xPos until length).find { pipeConnections[yPos][it].count != null } != null
+//    }
+//
+//    private fun firstNeighborRight(yPos: Int, xPos: Int): Int? {
+//        val length = pipeConnections[yPos].size
+//        if (xPos >= length - 1) {
+//            return null
+//        }
+//        return (xPos until length).map { pipeConnections[yPos][it].count }.first { it == null || it > 0 }
+//    }
+//
+//    private fun isTileInside(xPos: Int, yPos: Int): Boolean {
+//        if (pipeConnections[yPos][xPos].count != null) {
+//            return false
+//        }
+//        return isLoopLineTop(yPos, xPos) && isLoopLineBottom(yPos, xPos) &&
+//                isLoopLineLeft(yPos, xPos) && isLoopLineRight(yPos, xPos)
+//    }
+//
+//    private fun isTileOutside(xPos: Int, yPos: Int): Boolean {
+//        if (pipeConnections[yPos][xPos].count != -1) {
+//            return false
+//        }
+//        return firstNeighborTop(yPos, xPos) == null || firstNeighborBottom(yPos, xPos) == null ||
+//                firstNeighborLeft(yPos, xPos) == null || firstNeighborRight(yPos, xPos) == null
+//    }
+//
+    private fun constructPolygon(): Polygon {
+        val polygon = Polygon()
+        pipeConnections.flatten().filter { it.count != null }.sortedBy { it.count }.forEach {
+            polygon.addPoint(it.posX, it.posY)
+        }
+        return polygon
+    }
+
+    fun mapAllInside() {
+        val polygon = constructPolygon()
+        pipeConnections.forEachIndexed { yPos, itemY ->
+            itemY.forEachIndexed { xPos, itemX ->
+                if (itemX.count == null && polygon.contains(xPos, yPos)) {
+                    itemX.count = -1
+                }
+            }
+        }
+    }
+//
+//    fun mapAllOutside() {
+//        pipeConnections.forEachIndexed { yPos, itemY ->
+//            itemY.forEachIndexed { xPos, itemX ->
+//                if (isTileOutside(xPos, yPos)) {
+//                    itemX.count = -2
+//                }
+//            }
+//        }
+//    }
+
+    fun countAllInside(): Int {
+        return pipeConnections.flatten().count { it.count == -1 }
     }
 
     fun getMaxValue() = pipeConnections.flatten().maxOf { it.count ?: 0 }
@@ -90,7 +201,11 @@ sealed class PipeConnection(val posX: Int, val posY: Int) {
 
     override fun toString(): String {
 //        return "PipeConnection(posX=$posX, posY=$posY, visited=$visited, count=$count)"
-        return "[$visited $visitOrder $count)]"
+        return when (count) {
+            null -> "[---]"
+            else -> "[" + count.toString().padStart(3) + "]"
+        }
+//        return "[$visited $visitOrder $count)]"
     }
 
     class NS(posX: Int, posY: Int) : PipeConnection(posX, posY) {
@@ -230,6 +345,22 @@ sealed class PipeConnection(val posX: Int, val posY: Int) {
             visited = true
         }
 
+        override fun canMoveUp(itemT: PipeConnection?): Boolean {
+            return itemT != null && (itemT is NS || itemT is SE || itemT is SW)
+        }
+
+        override fun canMoveDown(itemB: PipeConnection?): Boolean {
+            return itemB != null && (itemB is NS || itemB is NE || itemB is NW)
+        }
+
+        override fun canMoveLeft(itemL: PipeConnection?): Boolean {
+            return itemL != null && (itemL is EW || itemL is SE || itemL is NE)
+        }
+
+        override fun canMoveRight(itemR: PipeConnection?): Boolean {
+            return itemR != null && (itemR is EW || itemR is SW || itemR is NW)
+        }
+
         override fun getNeighbors(pipeConnections: List<List<PipeConnection>>): List<PipeConnection> {
             return emptyList()
         }
@@ -261,17 +392,39 @@ fun main() {
     }
 
     fun part2(input: List<String>): Int {
-        return 0
+        val area = Area(mapConnections(input))
+//        println("parsed")
+//        area.pipeConnections.forEach {
+//            it.println()
+//        }
+//        println("check area")
+        area.checkArea()
+//        area.pipeConnections.forEach {
+//            it.println()
+//        }
+
+//        println("inside")
+        area.mapAllInside()
+//        area.pipeConnections.forEach {
+//            it.println()
+//        }
+        val count = area.countAllInside()
+//        count.println()
+        return count
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput1 = readInput("Day10_test1")
     val testInput2 = readInput("Day10_test2")
-    check(part1(testInput1) == 4)
-    check(part1(testInput2) == 8)
-//    check(part2(testInput1) == 8)
+    val testInput3 = readInput("Day10_test3")
+//    check(part1(testInput1) == 4)
+//    check(part1(testInput2) == 8)
+
+    check(part2(testInput1) == 4)
+    check(part2(testInput2) == 8)
+    check(part2(testInput3) == 10)
 
     val input = readInput("Day10")
     part1(input).println()
-//    part2(input).println()
+    part2(input).println()
 }
