@@ -1,12 +1,11 @@
 import java.awt.Point
-import kotlin.math.abs
 
 fun main() {
     data class GalaxyImage(
-        val image: List<List<Int>>,
+        val image: MutableList<MutableList<Int>>,
         val emptyRows: List<Int>,
         val emptyColumns: List<Int>,
-        val expansion: Long
+        val expansion: Int
     ) {
         val galaxiees = image.mapIndexed { y, row ->
             row.mapIndexedNotNull { x, column ->
@@ -39,9 +38,9 @@ fun main() {
         private fun getYDistance(y1: Int, y2: Int): Long {
             val diff = y2 - y1
             val rows = (y1 until y2).filter { emptyRows.contains(it) }
-            val rowsExpansion = rows.size * expansion
-            println("y1 to y2 -> $y1 to $y2")
-            println("rowsExpansion = $rowsExpansion, diff = $diff")
+            val rowsExpansion = rows.size * expansion.toLong()
+//            println("y1 to y2 -> $y1 to $y2")
+//            println("rowsExpansion = $rowsExpansion, diff = $diff")
             return rowsExpansion + diff
         }
 
@@ -55,10 +54,10 @@ fun main() {
         private fun getXDistance(x1: Int, x2: Int): Long {
             val diff = x2 - x1
             val columns = (x1 until x2).filter { emptyColumns.contains(it) }
-            val columnsExpansion = columns.size * expansion
+            val columnsExpansion = columns.size * expansion.toLong()
 
-            println("x1 to x2 -> $x1 to $x2")
-            println("columnsExpansion = $columnsExpansion, diff = $diff")
+//            println("x1 to x2 -> $x1 to $x2")
+//            println("columnsExpansion = $columnsExpansion, diff = $diff")
 
             return columnsExpansion + diff
         }
@@ -68,7 +67,73 @@ fun main() {
         }
     }
 
-    fun parseGalaxyImage(input: List<String>, addCount: Long): GalaxyImage {
+    fun parseExpandGalaxyImage(input: List<String>, expansion: Int): GalaxyImage {
+        val emptyRows = mutableListOf<Int>()
+        val emptyColumns = mutableListOf<Int>()
+
+        var index = 1
+        val galaxyImage = input.map { line ->
+            line.map {
+                if (it == '.') {
+                    0
+                } else {
+                    index++
+                }
+            }.toMutableList()
+        }.toMutableList()
+
+//        galaxyImage.forEach { line ->
+//            println(line.map { it.toString().padStart(2) })
+//        }
+
+        val rows = galaxyImage.size
+        val columns = galaxyImage[0].size
+
+//        println("rows = $rows, columns = $columns")
+//        println("adding columns")
+//        (0 until columns).forEach { column ->
+        (columns - 1 downTo 0).forEach { column ->
+            val allZeros = (0 until rows).all { row -> galaxyImage[row][column] == 0 }
+            if (allZeros) {
+                repeat(expansion) {
+                    (0 until rows).forEach { row -> galaxyImage[row].add(column, 0) }
+                }
+//                emptyColumns.add(column)
+            }
+        }
+
+//        println()
+//        galaxyImage.forEach { line ->
+//            println(line.map { it.toString().padStart(2) })
+//        }
+
+//        println("adding rows")
+//        (0 until rows).forEach { row ->
+        (rows - 1 downTo 0).forEach { row ->
+            val line = galaxyImage[row]
+            if (line.allZeros()) {
+                repeat(expansion) {
+                    galaxyImage.add(row, line)
+                }
+//                emptyRows.add(row)
+            }
+        }
+
+//        println()
+//        galaxyImage.forEach { line ->
+//            println(line.map { it.toString().padStart(2) })
+//        }
+
+//        println("empty rows")
+//        println(emptyRows)
+//
+//        println("empty columns")
+//        println(emptyColumns)
+
+        return GalaxyImage(galaxyImage, emptyRows, emptyColumns, expansion)
+    }
+
+    fun parseGalaxyImage(input: List<String>, expansion: Int): GalaxyImage {
         val emptyRows = mutableListOf<Int>()
         val emptyColumns = mutableListOf<Int>()
 
@@ -117,36 +182,36 @@ fun main() {
 //            println(line.map { it.toString().padStart(2) })
 //        }
 
-        println("empty rows")
-        println(emptyRows)
+//        println("empty rows")
+//        println(emptyRows)
+//
+//        println("empty columns")
+//        println(emptyColumns)
 
-        println("empty columns")
-        println(emptyColumns)
-
-        return GalaxyImage(galaxyImage, emptyRows, emptyColumns, addCount)
+        return GalaxyImage(galaxyImage, emptyRows, emptyColumns, expansion)
     }
 
     fun part1(input: List<String>): Long {
-        val galaxy = parseGalaxyImage(input, 1L)
+        val galaxy = parseExpandGalaxyImage(input, 1)
         val sum = galaxy.getAllPairs().sumOf {
             galaxy.getDistance(it)
         }
-        println(sum)
+//        println(sum)
         return sum
     }
 
-    fun part2(input: List<String>, addCount: Long): Long {
-        val galaxy = parseGalaxyImage(input, addCount)
+    fun part2(input: List<String>, expansion: Int): Long {
+        val galaxy = parseGalaxyImage(input, expansion - 1)
         val sum = galaxy.getAllPairs().sumOf {
             galaxy.getDistance(it)
         }
-        println(sum)
+//        println(sum)
         return sum
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readInput("Day11_test")
-//    check(part1(testInput) == 374L)
+    check(part1(testInput) == 374L)
     check(part2(testInput, 10) == 1030L)
     check(part2(testInput, 100) == 8410L)
 
