@@ -21,8 +21,9 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
  */
 fun Any?.println() = println(this)
 
-fun String.splitMultipleSpaces() = this.split("\\s+".toRegex())
-
+fun String.splitMultipleChar(escaped: String) = this.split("$escaped+".toRegex())
+fun String.splitMultipleSpaces() = this.splitMultipleChar("\\s")
+fun String.splitMultipleDots() = this.splitMultipleChar("\\.")
 public fun Iterable<Int>.multiply(): Int {
     var sum: Int = 1
     for (element in this) {
