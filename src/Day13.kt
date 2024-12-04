@@ -1,35 +1,60 @@
+private data class PatternData(
+    val data: CharArray
+) {
+    fun diff(other: PatternData): Int {
+        return data.zip(other.data).count { pair -> pair.first != pair.second }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PatternData
+
+        if (!data.contentEquals(other.data)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return data.contentHashCode()
+    }
+}
+
 private data class Pattern(
     val horizontal: MutableList<String> = mutableListOf()
 ) {
     private val data by lazy { horizontal.map { it.toCharArray() }.toTypedArray() }
-    private lateinit var hashH: List<Int>
-    private val hashV = mutableListOf<Int>()
+    private lateinit var hashH: List<PatternData>
+    private val hashV = mutableListOf<PatternData>()
 
     private fun generateHashes() {
         hashH = horizontal.map { string ->
-            string.replace('#', '1').replace('.', '0').toInt(2)
+            PatternData(string.toCharArray())
         }
 //        println(hashH)
 
         val width = horizontal.first().count()
         for (x in 0..<width) {
             hashV.add(
-                buildString {
-                    for (y in 0..<data.size) {
-                        append(
-                            when (data[y][x]) {
-                                '#' -> '1'
-                                else -> '0'
-                            }
-                        )
-                    }
-                }.toInt(2)
+                PatternData(
+                    buildString {
+                        for (y in 0..<data.size) {
+                            append(
+                                when (data[y][x]) {
+                                    '#' -> '1'
+                                    else -> '0'
+                                }
+                            )
+                        }
+                    }.toCharArray()
+                )
             )
         }
 //        println(hashV)
     }
 
-    private fun checkPatternData(pattern: List<Int>, index: Int, size: Int): Int {
+    private fun checkPatternData(pattern: List<PatternData>, index: Int, size: Int): Int {
         val part1 = pattern.subList(index - size, index)
         val part2 = pattern.subList(index, index + size)
         val reverse = part2.reversed()
@@ -41,18 +66,18 @@ private data class Pattern(
         }
     }
 
-    private fun checkSubPattern(pattern: List<Int>, index: Int): Int {
+    private fun checkSubPattern(pattern: List<PatternData>, index: Int): Int {
         val size = minOf(index, pattern.size - index)
         return checkPatternData(pattern, index, size)
     }
 
-    private fun findAllEquals(pattern: List<Int>): List<Int> {
+    private fun findAllEquals(pattern: List<PatternData>): List<Int> {
         return pattern.mapIndexedNotNull { index, value ->
-            if (index != 0 && value == pattern[index - 1]) index else null
+            if (index != 0 && value.diff(pattern[index - 1]) == 0) index else null
         }
     }
 
-    private fun checkPattern(pattern: List<Int>): Int {
+    private fun checkPattern(pattern: List<PatternData>): Int {
         val indexes = findAllEquals(pattern)
 //        println("$pattern -> $indexes")
         return indexes.maxOfOrNull { index ->
